@@ -1,13 +1,14 @@
 # k6 Codespace
 
+[![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/lbrenman/k6-codespace?quickstart=1)
+
 A ready-to-go [k6](https://grafana.com/docs/k6/latest/) load-testing workspace for **GitHub Codespaces**. Open it, and k6 is installed, on your PATH, and ready to run. Your test scripts and results are kept in the repo, so they persist across Codespace stops, rebuilds and deletions.
 
 ## Quick start
 
-1. Create a new GitHub repo from these files (or push them to an existing repo).
-2. On GitHub: **Code → Codespaces → Create codespace on main**.
-3. Wait for setup to finish (it installs k6, jq and k6 type definitions, and creates `.env`).
-4. In the terminal:
+1. Click the **Open in GitHub Codespaces** button above (or on GitHub: **Code → Codespaces → Create codespace on main**). If you already have a Codespace for this repo, the button offers to resume it instead of creating a new one.
+2. Wait for setup to finish (it installs k6, jq and k6 type definitions, and creates `.env`).
+3. In the terminal:
 
 ```bash
 k6run smoke
