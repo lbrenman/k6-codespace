@@ -1,0 +1,82 @@
+#!/usr/bin/env bash
+# Run a k6 test and save its results.
+#
+#   k6run <name|path> [extra k6 args...]
+#
+# Examples:
+#   k6run smoke
+#   VUS=50 HOLD=10m k6run load
+#   k6run scripts/my-api.js --vus 10 --duration 2m
+#
+# Results go to results/<timestamp>_<name>/ :
+#   summary.json  end-of-test metrics (committed by k6save)
+#   report.html   web dashboard export (committed by k6save)
+#   meta.json     run details (committed by k6save)
+#   run.log       console output (git-ignored)
+# Set DASHBOARD=0 to skip the web dashboard / HTML report.
+set -uo pipefail
+ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+cd "$ROOT"
+
+if [[ $# -lt 1 ]]; then
+  echo "Usage: k6run <name|path> [extra k6 args...]"
+  echo "Available tests:"; ls scripts/*.js 2>/dev/null | sed 's#scripts/##; s#\.js$##; s#^#  #'
+  exit 1
+fi
+
+TARGET="$1"; shift
+if [[ -f "$TARGET" ]]; then
+  SCRIPT="$TARGET"
+elif [[ -f "scripts/${TARGET%.js}.js" ]]; then
+  SCRIPT="scripts/${TARGET%.js}.js"
+else
+  echo "Test not found: $TARGET" >&2; exit 1
+fi
+NAME="$(basename "${SCRIPT%.js}")"
+
+# Load .env (values already set in the shell take precedence)
+if [[ -f .env ]]; then
+  while IFS='=' read -r key val; do
+    [[ -z "$key" || "$key" =~ ^[[:space:]]*# ]] && continue
+    key="$(echo "${key#export }" | xargs)"
+    val="${val%\"}"; val="${val#\"}"; val="${val%\'}"; val="${val#\'}"
+    [[ -z "${!key+x}" ]] && export "$key=$val"
+  done < .env
+fi
+
+TS="$(date +%Y%m%d-%H%M%S)"
+OUT="results/${TS}_${NAME}"
+mkdir -p "$OUT"
+
+if [[ "${DASHBOARD:-1}" == "1" ]]; then
+  export K6_WEB_DASHBOARD=true
+  export K6_WEB_DASHBOARD_EXPORT="$OUT/report.html"
+  echo "Live dashboard: forwarded port 5665 (Ports tab) while the test runs."
+fi
+
+echo "Running $SCRIPT against ${BASE_URL:-<default>} -> $OUT"
+START="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+
+k6 run --summary-export "$OUT/summary.json" "$@" "$SCRIPT" 2>&1 | tee "$OUT/run.log"
+CODE="${PIPESTATUS[0]}"
+
+cat > "$OUT/meta.json" <<JSON
+{
+  "test": "$NAME",
+  "script": "$SCRIPT",
+  "base_url": "${BASE_URL:-}",
+  "target_path": "${TARGET_PATH:-}",
+  "extra_args": "$*",
+  "started": "$START",
+  "finished": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
+  "k6_version": "$(k6 version 2>/dev/null | head -n1)",
+  "exit_code": $CODE,
+  "thresholds_passed": $([[ $CODE -eq 0 ]] && echo true || echo false)
+}
+JSON
+
+ln -sfn "${TS}_${NAME}" results/latest
+echo
+if [[ $CODE -eq 0 ]]; then echo "PASS  results in $OUT"; else echo "FAIL (exit $CODE)  results in $OUT"; fi
+echo "Tip: run 'k6save' to push scripts and results to GitHub."
+exit "$CODE"

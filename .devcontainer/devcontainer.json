@@ -1,0 +1,25 @@
+{
+  "name": "k6 Load Testing",
+  "image": "mcr.microsoft.com/devcontainers/base:ubuntu-24.04",
+  "features": {
+    "ghcr.io/devcontainers/features/node:1": { "version": "lts" }
+  },
+  "containerEnv": {
+    "K6_VERSION": "latest"
+  },
+  "remoteEnv": {
+    "PATH": "${containerWorkspaceFolder}/bin:${containerEnv:PATH}"
+  },
+  "postCreateCommand": "bash .devcontainer/post-create.sh",
+  "postStartCommand": "bash .devcontainer/post-start.sh",
+  "forwardPorts": [5665],
+  "portsAttributes": {
+    "5665": {
+      "label": "k6 web dashboard (live while a test runs)",
+      "onAutoForward": "notify"
+    }
+  },
+  "hostRequirements": {
+    "cpus": 4
+  }
+}

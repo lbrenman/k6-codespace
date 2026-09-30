@@ -1,0 +1,21 @@
+#!/usr/bin/env bash
+# List past runs with key metrics:  k6results [N]   (default last 15)
+set -euo pipefail
+ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+cd "$ROOT/results"
+N="${1:-15}"
+
+printf "%-32s %-6s %9s %9s %9s %8s\n" "RUN" "RESULT" "REQS" "AVG ms" "P95 ms" "ERR %"
+for d in $(ls -1d */ 2>/dev/null | grep -v '^latest' | sort -r | head -n "$N"); do
+  d="${d%/}"
+  s="$d/summary.json"; m="$d/meta.json"
+  [[ -f "$s" ]] || continue
+  res="?"; [[ -f "$m" ]] && res="$(jq -r 'if .thresholds_passed then "PASS" else "FAIL" end' "$m")"
+  jq -r --arg d "$d" --arg r "$res" '
+    [ $d, $r,
+      (.metrics.http_reqs.count // 0 | tostring),
+      (.metrics.http_req_duration.avg // 0 | . * 10 | round / 10 | tostring),
+      (.metrics.http_req_duration["p(95)"] // 0 | . * 10 | round / 10 | tostring),
+      ((.metrics.http_req_failed.value // 0) * 100 | . * 100 | round / 100 | tostring)
+    ] | @tsv' "$s" | awk -F'\t' '{printf "%-32s %-6s %9s %9s %9s %8s\n",$1,$2,$3,$4,$5,$6}'
+done

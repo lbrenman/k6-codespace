@@ -1,0 +1,8 @@
+{
+  "name": "k6-codespace",
+  "private": true,
+  "description": "k6 load testing workspace for GitHub Codespaces",
+  "devDependencies": {
+    "@types/k6": "latest"
+  }
+}

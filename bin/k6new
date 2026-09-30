@@ -1,0 +1,12 @@
+#!/usr/bin/env bash
+# Create a new test from the template:  k6new <name>
+set -euo pipefail
+ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+NAME="${1:-}"
+[[ -z "$NAME" ]] && { echo "Usage: k6new <name>"; exit 1; }
+NAME="${NAME%.js}"
+DEST="$ROOT/scripts/$NAME.js"
+[[ -e "$DEST" ]] && { echo "Already exists: scripts/$NAME.js" >&2; exit 1; }
+sed "s/__NAME__/$NAME/g" "$ROOT/templates/basic.js" > "$DEST"
+echo "Created scripts/$NAME.js"
+command -v code >/dev/null 2>&1 && code "$DEST" || true

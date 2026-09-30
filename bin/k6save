@@ -1,0 +1,25 @@
+#!/usr/bin/env bash
+# Commit and push scripts, lib, templates and results to GitHub.
+#   k6save                 -> auto message
+#   k6save "tuned load"    -> custom message
+set -euo pipefail
+ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+cd "$ROOT"
+
+git add -A scripts lib templates results Makefile README.md .env.example 2>/dev/null || true
+
+if git diff --cached --quiet; then
+  echo "Nothing new to commit."
+else
+  MSG="${1:-k6: save scripts and results $(date +%Y-%m-%d\ %H:%M)}"
+  git commit -q -m "$MSG"
+  echo "Committed: $MSG"
+fi
+
+BRANCH="$(git rev-parse --abbrev-ref HEAD)"
+if git rev-parse --abbrev-ref '@{u}' >/dev/null 2>&1; then
+  git push -q
+else
+  git push -q -u origin "$BRANCH"
+fi
+echo "Pushed to origin/$BRANCH."
