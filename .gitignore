@@ -4,3 +4,4 @@ package-lock.json
 results/latest
 results/**/run.log
 .DS_Store
+results/index.html

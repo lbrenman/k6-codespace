@@ -1,0 +1,13 @@
+#!/usr/bin/env bash
+# View saved k6 results in your browser after a test has finished.
+#
+#   k6report                latest run's HTML report
+#   k6report <match>        newest run whose folder name contains <match>
+#                           e.g. k6report stock2api   k6report 20260930-14
+#   k6report --all          browsable index of every run (metrics + links)
+#   k6report --build-index  just write results/index.html (no server)
+#
+# Env: PORT (default 8080), K6REPORT_NO_OPEN=1 to skip auto-opening the browser
+set -euo pipefail
+ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+exec node "$ROOT/tools/report-server.js" "$@"

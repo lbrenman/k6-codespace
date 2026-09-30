@@ -27,13 +27,15 @@ That runs a 30-second, 1-VU test against the public Grafana demo site (`https://
 bin/                   Helper commands (on PATH automatically)
   k6run                Run a test and save results
   k6new                Scaffold a new test from the template
-  k6results            Table of past runs with key metrics
+  k6results            Table of past runs with key metrics (terminal)
+  k6report             View saved HTML reports in your browser
   k6save               Commit + push scripts and results to GitHub
 lib/
   config.js            Env-driven config: BASE_URL, auth headers, thresholds
   helpers.js           hit(), postJson(), think()
 scripts/               Your tests (smoke, load, stress, spike, soak included)
 templates/basic.js     Template used by k6new
+tools/report-server.js Tiny static server + run index used by k6report (no npm deps)
 results/               One folder per run (see "Results")
 .env.example           Copy of the config keys; .env is git-ignored
 Makefile               make shortcuts for the commands above
@@ -155,11 +157,38 @@ RUN                              RESULT      REQS    AVG ms    P95 ms    ERR %
 20260930-135010_smoke            PASS          29      95.1     140.9        0
 ```
 
-To view an HTML report, right-click `report.html` in the Explorer and choose **Download**, then open it in your browser.
+## Viewing results after a test ends
 
-### Live dashboard
+The live dashboard on port 5665 (including its **Report** button) only exists while k6 is running. Once the test finishes, k6 exits and the dashboard goes away. If you click **Report** after that, you'll get an HTTP 502 from Codespaces. Nothing is lost, though: `k6run` saves the same HTML report to `results/<run>/report.html` at the end of every run.
 
-While a test is running, the k6 web dashboard is served on port **5665**. Codespaces forwards it automatically; open it from the **Ports** tab to watch metrics in real time. Set `DASHBOARD=0` to disable the dashboard and the HTML report.
+### `k6report` (easiest)
+
+```bash
+k6report                  # open the latest run's report
+k6report stock2api        # newest run whose folder name contains "stock2api"
+k6report 20260930-14      # match by date/time prefix
+k6report --all            # index of every run: pass/fail, requests, avg, p95, errors, 429s, links
+```
+
+`k6report` starts a small local web server on port **8080** and opens the page in your browser (in Codespaces it uses the forwarded URL automatically). You can also open it from the **Ports** tab. Press **Ctrl+C** to stop the server.
+
+The `--all` index links to each run's `report.html`, `summary.json` and `run.log`, which makes it easy to compare runs side by side. To write `results/index.html` without starting a server, use `k6report --build-index`.
+
+Options:
+
+| Env var | Effect |
+|---|---|
+| `PORT=8081 k6report` | Use a different port (if 8080 is taken) |
+| `K6REPORT_NO_OPEN=1 k6report` | Don't open the browser automatically |
+
+The same commands are available through make: `make report`, `make report R=stock2api`, and `make report-all`.
+
+### Other ways to view results
+
+- **Terminal table:** `k6results` prints recent runs with key metrics, no browser needed.
+- **Download:** In the VS Code Explorer, right-click `results/<run>/report.html` → **Download**, then open it locally. The report is a single self-contained HTML file, so it works offline and can be emailed or attached to a ticket.
+- **On GitHub:** After `k6save`, reports are in the repo. Download `report.html` from GitHub to view it (GitHub shows HTML files as source, not rendered).
+- **Keep the live dashboard up:** Add k6's `--linger` flag, e.g. `k6run stock2api --linger`. k6 stays alive after the test ends, so the dashboard and its **Report** button keep working until you press **Ctrl+C**.
 
 ## Codespace sizing and limits
 
@@ -197,6 +226,10 @@ Then rebuild (Command Palette → **Codespaces: Rebuild Container**). You can al
 ## Troubleshooting
 
 **`k6: command not found`** — Run `bash .devcontainer/install-k6.sh`, or rebuild the container. Check the creation log (Command Palette → **Codespaces: View Creation Log**) for errors.
+
+**Report button returns HTTP 502** — The test has finished and the dashboard is gone. Use `k6report` instead (see "Viewing results after a test ends").
+
+**`k6report` says the port is in use** — Another `k6report` is still running in some terminal. Stop it with Ctrl+C, or use `PORT=8081 k6report`.
 
 **`k6run: command not found`** — `bin/` is added to PATH via `remoteEnv`. Open a new terminal, or run `./bin/k6run` directly.
 

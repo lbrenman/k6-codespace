@@ -78,5 +78,6 @@ JSON
 ln -sfn "${TS}_${NAME}" results/latest
 echo
 if [[ $CODE -eq 0 ]]; then echo "PASS  results in $OUT"; else echo "FAIL (exit $CODE)  results in $OUT"; fi
-echo "Tip: run 'k6save' to push scripts and results to GitHub."
+echo "View the report: k6report   (all runs: k6report --all)"
+echo "Save to GitHub:  k6save"
 exit "$CODE"
